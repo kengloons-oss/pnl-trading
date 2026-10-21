@@ -4,6 +4,14 @@ A private, multi-market trading journal built with PHP and Laravel. This first s
 
 ## Local setup
 
+On Windows, run the setup and start the local server in one step:
+
+```powershell
+.\run.ps1
+```
+
+The script installs Composer dependencies, creates `.env` and the SQLite file only when missing, generates an app key only when needed, applies pending migrations, and starts the server at `http://127.0.0.1:8000`. You can change the address or port with `-ListenAddress` and `-Port`, for example `./run.ps1 -Port 8080`.
+
 1. Install PHP 8.3+, Composer, and Node.js if you later add bundled frontend assets.
 2. Install PHP dependencies with `composer install`.
 3. Copy `.env.example` to `.env` and run `php artisan key:generate`.
