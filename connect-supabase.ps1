@@ -2,7 +2,7 @@ $Port = 8001
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
-$phpPackages = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+$phpPackages = Join-Path $env:USERPROFILE 'AppData\Local\Microsoft\WinGet\Packages'
 $phpPackage = Get-ChildItem -LiteralPath $phpPackages -Directory -Filter 'PHP.PHP.8.5*' -ErrorAction SilentlyContinue |
     Sort-Object Name -Descending |
     Where-Object { (Test-Path (Join-Path $_.FullName 'php.exe')) -and (Test-Path (Join-Path $_.FullName 'ext\php_pdo_pgsql.dll')) } |
@@ -14,10 +14,14 @@ if (-not $phpPackage) {
 
 $php = Join-Path $phpPackage.FullName 'php.exe'
 $env:Path = "$($phpPackage.FullName);$env:Path"
-
-& $php -d extension=pdo_pgsql -r "exit(in_array('pgsql', PDO::getAvailableDrivers(), true) ? 0 : 1);"
+$phpExtensionArguments = @()
+& $php -r "exit(in_array('pgsql', PDO::getAvailableDrivers(), true) ? 0 : 1);"
 if ($LASTEXITCODE -ne 0) {
-    throw 'PHP could not load the PostgreSQL PDO driver.'
+    & $php -d extension=pdo_pgsql -r "exit(in_array('pgsql', PDO::getAvailableDrivers(), true) ? 0 : 1);"
+    if ($LASTEXITCODE -ne 0) {
+        throw 'PHP could not load the PostgreSQL PDO driver.'
+    }
+    $phpExtensionArguments = @('-d', 'extension=pdo_pgsql')
 }
 
 if (-not (Test-Path -LiteralPath '.env')) {
@@ -30,7 +34,7 @@ $applicationKey = if ($applicationKeyLine) { $applicationKeyLine.Substring('APP_
 
 if ([string]::IsNullOrWhiteSpace($applicationKey)) {
     Write-Host 'Generating the Laravel application key...'
-    & $php -d extension=pdo_pgsql artisan key:generate
+    & $php @phpExtensionArguments artisan key:generate
     if ($LASTEXITCODE -ne 0) {
         throw 'Could not generate the Laravel application key.'
     }
@@ -101,13 +105,13 @@ try {
 }
 
 Write-Host 'Checking Supabase connection and applying pending Laravel migrations...'
-& $php -d extension=pdo_pgsql artisan migrate
+& $php @phpExtensionArguments artisan migrate
 if ($LASTEXITCODE -ne 0) {
     throw "Supabase connection or migration failed (exit code $LASTEXITCODE). Check the connection details and Supabase network restrictions."
 }
 
 Write-Host "Supabase is configured. Starting the app at http://127.0.0.1:$Port"
-& $php -d extension=pdo_pgsql artisan serve --host=127.0.0.1 --port=$Port
+& $php @phpExtensionArguments artisan serve --host=127.0.0.1 --port=$Port
 if ($LASTEXITCODE -ne 0) {
     throw "Laravel server exited with code $LASTEXITCODE."
 }

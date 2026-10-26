@@ -18,7 +18,7 @@ $connectionLine = Get-Content -LiteralPath '.env' | Where-Object { $_ -match '^D
 $connection = if ($connectionLine) { $connectionLine.Substring('DB_CONNECTION='.Length).Trim().Trim('"').Trim("'") } else { 'sqlite' }
 
 if ($connection -eq 'pgsql') {
-    $phpPackages = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+    $phpPackages = Join-Path $env:USERPROFILE 'AppData\Local\Microsoft\WinGet\Packages'
     $phpPackage = Get-ChildItem -LiteralPath $phpPackages -Directory -Filter 'PHP.PHP.8.5*' -ErrorAction SilentlyContinue |
         Sort-Object Name -Descending |
         Where-Object { (Test-Path (Join-Path $_.FullName 'php.exe')) -and (Test-Path (Join-Path $_.FullName 'ext\php_pdo_pgsql.dll')) } |
@@ -30,12 +30,17 @@ if ($connection -eq 'pgsql') {
 
     $php = Join-Path $phpPackage.FullName 'php.exe'
     $env:Path = "$($phpPackage.FullName);$env:Path"
-    & $php -d extension=pdo_pgsql -r "exit(in_array('pgsql', PDO::getAvailableDrivers(), true) ? 0 : 1);"
+    $phpExtensionArguments = @()
+    & $php -r "exit(in_array('pgsql', PDO::getAvailableDrivers(), true) ? 0 : 1);"
     if ($LASTEXITCODE -ne 0) {
-        throw 'PHP could not load the PostgreSQL PDO driver.'
+        & $php -d extension=pdo_pgsql -r "exit(in_array('pgsql', PDO::getAvailableDrivers(), true) ? 0 : 1);"
+        if ($LASTEXITCODE -ne 0) {
+            throw 'PHP could not load the PostgreSQL PDO driver.'
+        }
+        $phpExtensionArguments = @('-d', 'extension=pdo_pgsql')
     }
 
-    & $php -d extension=pdo_pgsql artisan serve --host=$ListenAddress --port=$Port
+    & $php @phpExtensionArguments artisan serve --host=$ListenAddress --port=$Port
 } else {
     $php = (Get-Command php -ErrorAction Stop).Source
     & $php artisan serve --host=$ListenAddress --port=$Port
