@@ -1,37 +1,23 @@
 # PnL Trading
 
-A private, multi-market trading journal built with PHP and Laravel. This first slice includes user accounts, trading accounts, complete-position CRUD, and a reporting dashboard. Supabase and Render settings are documented as environment variables and are not required for local development.
+A multi-user, multi-market trading journal built with PHP and Laravel. It includes trade and account management, CSV/TSV import with duplicate skipping, monthly and yearly dashboard views, and embedded market charts for BTCUSD, ETHUSD, USDJPY, and XAUUSD.
 
-## Local setup
+## Get started
 
-On Windows, run the setup and start the local server in one step:
+For a new Windows computer, follow [Setup.md](Setup.md). It covers cloning this repository, installing dependencies, connecting to the configured Supabase database, and starting the app.
 
-```powershell
-.\run.ps1
-```
+After the one-time setup, run `run.ps1` and open `http://127.0.0.1:8001`. The startup script does not ask for the database password or run migrations. To apply new database migrations after updating the code, run `connect-supabase.ps1`; it reuses the password stored in the local ignored `.env` file and starts the app after migrations complete.
 
-The script installs Composer dependencies, creates `.env` and the SQLite file only when missing, generates an app key only when needed, applies pending migrations, and starts the server at `http://127.0.0.1:8000`. You can change the address or port with `-ListenAddress` and `-Port`, for example `./run.ps1 -Port 8080`.
+## Current features
 
-1. Install PHP 8.3+, Composer, and Node.js if you later add bundled frontend assets.
-2. Install PHP dependencies with `composer install`.
-3. Copy `.env.example` to `.env` and run `php artisan key:generate`.
-4. Create an empty SQLite file at `database/database.sqlite` if it does not exist.
-5. Run `php artisan migrate`.
-6. Start the app with `php artisan serve` and open `http://127.0.0.1:8000`.
+- User registration and sign-in with per-user account and trade ownership.
+- Multiple trading accounts and complete-position trade CRUD.
+- CSV, TSV, and tab-separated text import with column mapping, preview, row validation, and duplicate skipping.
+- Monthly and yearly performance dashboard, grouped by original currency and user's reporting timezone.
+- TradingView embedded charts for BTCUSD, ETHUSD, USDJPY, and XAUUSD.
 
-Create an account in the browser. Add a trading account, then record a position. Reporting uses the manual PnL value when provided, applies the selected fee treatment, and groups closed positions in the user's reporting timezone.
+Excel workbooks, OCR, AI analysis, richer partial-close workflows, and MT5 synchronization remain future work. See [plan.md](plan.md) for the product plan.
 
-## Database
+## Security
 
-SQLite is configured for local development. To use Supabase PostgreSQL, set `DB_CONNECTION=pgsql` and fill in the PostgreSQL connection values shown in `.env.example`. Do not commit `.env` or production credentials.
-
-## Current scope
-
-- Multi-user registration and sign-in.
-- Multiple trading accounts per user.
-- Manual trade positions across forex, crypto, equities, and other markets.
-- Original currency codes and decimal precision fields.
-- Dashboard filters for monthly and yearly reporting.
-- Execution child records are modeled for future partial-entry and partial-exit capture.
-
-CSV/Excel import, live market feeds, position-level execution capture, AI analysis, OCR, and MT5 sync are planned follow-up work.
+`.env` contains local credentials and is excluded from Git. Never commit database passwords, API keys, or production secrets. The Supabase connection script stores the password only in the local `.env` file after a hidden prompt.

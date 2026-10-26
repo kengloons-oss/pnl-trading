@@ -1,7 +1,7 @@
 @extends('layouts.app', ['title' => 'Trades'])
 
 @section('content')
-    <div class="page-heading-row compact-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> TRADE JOURNAL</div><h1>Every position,<br><em>one clear view.</em></h1><p>Track full positions across accounts and markets.</p></div><a class="button button-dark" href="{{ route('trades.create') }}">Record a trade <span>＋</span></a></div>
+    <div class="page-heading-row compact-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> TRADE JOURNAL</div><h1>Every position,<br><em>one clear view.</em></h1><p>Track full positions across accounts and markets.</p></div><div class="heading-actions"><a class="button button-light" href="{{ route('imports.create') }}">Import file <span>⇧</span></a><a class="button button-dark" href="{{ route('trades.create') }}">Record a trade <span>＋</span></a></div></div>
     <form class="filter-bar" method="GET" action="{{ route('trades.index') }}">
         <label class="search-field"><span>⌕</span><input name="symbol" value="{{ request('symbol') }}" placeholder="Search symbol..."></label>
         <select name="account"><option value="">All accounts</option>@foreach ($accounts as $account)<option value="{{ $account->id }}" @selected((string) request('account') === (string) $account->id)>{{ $account->name }}</option>@endforeach</select>

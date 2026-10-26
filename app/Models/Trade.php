@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'user_id', 'trading_account_id', 'market', 'symbol', 'side', 'status', 'opened_at', 'closed_at',
     'entry_price', 'exit_price', 'quantity', 'manual_profit_loss', 'computed_profit_loss', 'fees',
     'pnl_includes_fees', 'currency_code', 'price_precision', 'quantity_precision', 'amount_precision',
-    'external_position_id', 'strategy', 'notes',
+    'external_position_id', 'import_fingerprint', 'strategy', 'notes',
 ])]
 class Trade extends Model
 {

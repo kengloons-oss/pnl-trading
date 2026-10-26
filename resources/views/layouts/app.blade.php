@@ -22,6 +22,8 @@
                 <nav class="primary-nav" aria-label="Main navigation">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span class="nav-icon">◫</span> Overview</a>
                     <a class="nav-link {{ request()->routeIs('trades.*') ? 'active' : '' }}" href="{{ route('trades.index') }}"><span class="nav-icon">↗</span> Trades</a>
+                    <a class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" href="{{ route('imports.create') }}"><span class="nav-icon">⇧</span> Import</a>
+                    <a class="nav-link {{ request()->routeIs('markets.*') ? 'active' : '' }}" href="{{ route('markets.index') }}"><span class="nav-icon">⌁</span> Markets</a>
                     <a class="nav-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}" href="{{ route('accounts.index') }}"><span class="nav-icon">▤</span> Accounts</a>
                 </nav>
                 <div class="sidebar-bottom">
@@ -56,6 +58,9 @@
                 @endif
                 @if ($errors->any())
                     <div class="error-message"><strong>Please check the form.</strong><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+                @endif
+                @if (session('import_failures'))
+                    <div class="error-message"><strong>Some rows could not be imported.</strong><ul>@foreach (session('import_failures') as $failure)<li>{{ $failure }}</li>@endforeach</ul></div>
                 @endif
                 @yield('content')
             </section>

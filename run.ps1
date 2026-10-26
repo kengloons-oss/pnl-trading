@@ -1,46 +1,46 @@
 param(
-    [int] $Port = 8000,
+    [int] $Port = 8001,
     [string] $ListenAddress = '127.0.0.1'
 )
 
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 
-function Invoke-CheckedCommand {
-    param(
-        [Parameter(Mandatory = $true)][string] $Executable,
-        [Parameter(Mandatory = $true)][string[]] $Arguments
-    )
-
-    & $Executable @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Command failed with exit code ${LASTEXITCODE}: $Executable $($Arguments -join ' ')"
-    }
-}
-
-$php = (Get-Command php -ErrorAction Stop).Source
-$composer = (Get-Command composer -ErrorAction Stop).Source
-
-Write-Host 'Installing PHP dependencies...'
-Invoke-CheckedCommand -Executable $composer -Arguments @('install', '--no-interaction')
-
 if (-not (Test-Path -LiteralPath '.env')) {
-    Copy-Item -LiteralPath '.env.example' -Destination '.env'
-    Write-Host 'Created .env from .env.example.'
+    throw 'Missing .env. Configure the database once with connect-supabase.ps1 before starting the app.'
 }
 
-$appKeyLine = Get-Content -LiteralPath '.env' | Where-Object { $_ -match '^APP_KEY=' } | Select-Object -First 1
-if (-not $appKeyLine -or $appKeyLine -match '^APP_KEY=\s*$') {
-    Invoke-CheckedCommand -Executable $php -Arguments @('artisan', 'key:generate')
+if (-not (Test-Path -LiteralPath 'vendor/autoload.php')) {
+    throw 'Missing Composer dependencies. Run composer install once before starting the app.'
 }
 
-if (-not (Test-Path -LiteralPath 'database/database.sqlite')) {
-    New-Item -ItemType File -Path 'database/database.sqlite' | Out-Null
-    Write-Host 'Created the SQLite database file.'
+$connectionLine = Get-Content -LiteralPath '.env' | Where-Object { $_ -match '^DB_CONNECTION=' } | Select-Object -Last 1
+$connection = if ($connectionLine) { $connectionLine.Substring('DB_CONNECTION='.Length).Trim().Trim('"').Trim("'") } else { 'sqlite' }
+
+if ($connection -eq 'pgsql') {
+    $phpPackages = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+    $phpPackage = Get-ChildItem -LiteralPath $phpPackages -Directory -Filter 'PHP.PHP.8.5*' -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending |
+        Where-Object { (Test-Path (Join-Path $_.FullName 'php.exe')) -and (Test-Path (Join-Path $_.FullName 'ext\php_pdo_pgsql.dll')) } |
+        Select-Object -First 1
+
+    if (-not $phpPackage) {
+        throw 'PHP with the PostgreSQL PDO extension was not found. Install PHP 8.5 from WinGet.'
+    }
+
+    $php = Join-Path $phpPackage.FullName 'php.exe'
+    $env:Path = "$($phpPackage.FullName);$env:Path"
+    & $php -d extension=pdo_pgsql -r "exit(in_array('pgsql', PDO::getAvailableDrivers(), true) ? 0 : 1);"
+    if ($LASTEXITCODE -ne 0) {
+        throw 'PHP could not load the PostgreSQL PDO driver.'
+    }
+
+    & $php -d extension=pdo_pgsql artisan serve --host=$ListenAddress --port=$Port
+} else {
+    $php = (Get-Command php -ErrorAction Stop).Source
+    & $php artisan serve --host=$ListenAddress --port=$Port
 }
 
-Write-Host 'Applying pending database migrations...'
-Invoke-CheckedCommand -Executable $php -Arguments @('artisan', 'migrate')
-
-Write-Host "Starting PnL Trading at http://${ListenAddress}:$Port"
-Invoke-CheckedCommand -Executable $php -Arguments @('artisan', 'serve', '--host', $ListenAddress, '--port', "$Port")
+if ($LASTEXITCODE -ne 0) {
+    throw "Laravel server exited with code $LASTEXITCODE."
+}
